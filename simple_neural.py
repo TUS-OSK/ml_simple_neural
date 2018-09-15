@@ -21,7 +21,7 @@ class Layer:
         """
         raise NotImplementedError()
 
-    def backward(self):
+    def backward(self, x):
         """
         計算の微分
         :return:
@@ -46,11 +46,11 @@ class Add(Layer):
         """
         self.a = as_var(a)
         self.b = as_var(b)
-        self.c = Variable(np.asarray(a.data + b.data))
-        self.c.grad_fn = self.backward
-        return self.c
+        c = Variable(np.asarray(self.a.data + self.b.data))
+        c.grad_fn = self.backward
+        return c
 
-    def backward(self):
+    def backward(self, x):
         """
         勾配は出力の勾配そのまま
         :return:
@@ -59,8 +59,8 @@ class Add(Layer):
             self.a.grad = 0
         if self.b.grad is None:
             self.b.grad = 0
-        self.a.grad += self.c.grad
-        self.b.grad += self.c.grad
+        self.a.grad += x.grad
+        self.b.grad += x.grad
         self.a.backward()
         self.b.backward()
 
@@ -79,13 +79,13 @@ class Mul(Layer):
         """
         self.a = as_var(a)
         self.b = as_var(b)
-        self.a_data = a.data
-        self.b_data = b.data
-        self.c = Variable(np.asarray(a.data * b.data))
-        self.c.grad_fn = self.backward
-        return self.c
+        self.a_data = self.a.data
+        self.b_data = self.b.data
+        c = Variable(np.asarray(self.a.data * self.b.data))
+        c.grad_fn = self.backward
+        return c
 
-    def backward(self):
+    def backward(self, x):
         """
         勾配は、２つの入力を入れ替える感じで掛ける
         :return:
@@ -94,8 +94,8 @@ class Mul(Layer):
             self.a.grad = 0
         if self.b.grad is None:
             self.b.grad = 0
-        self.a.grad += self.c.grad * self.b_data
-        self.b.grad += self.c.grad * self.a_data
+        self.a.grad += x.grad * self.b_data
+        self.b.grad += x.grad * self.a_data
         self.a.backward()
         self.b.backward()
 
@@ -152,7 +152,7 @@ class Variable:
         if self.grad is None:
             self.grad = 1
         if self.grad_fn is not None:
-            self.grad_fn()
+            self.grad_fn(self)
 
 
 def main():
